@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from denoising_diffusion_pytorch import Unet, GaussianDiffusion
+import tqdm 
 
 class IFDM(nn.Module):
     def __init__(self,
@@ -40,6 +42,17 @@ class IFDM(nn.Module):
 
         # Diffusion network
         # TBD by Junhyeok Choi
+        self.model = Unet(
+            dim = 64,
+            dim_mults = (1, 2, 4, 8),
+            flash_attn = True
+        )
+        self.diffusion_model = GaussianDiffusion(
+            model = self.model,
+            image_size = (width, height),
+            timesteps = 100,
+            sampling_timesteps = 100
+        )
 
 
     def forward(self, input):
@@ -68,12 +81,23 @@ class IFDM(nn.Module):
 
         return new_image
 
-    def IFdiffusion(self, middle_image, merged_feature):
+    def IFdiffusion(self, middle_image, merged_feature, train_num_steps):
         # middle_image: [batch_size, num_frame-2, height, width, RGB]
         # merged_feature: [batch_size, num_frame, embedding_dim]
         # middle_image_next_step: [batch_size, num_frame-2, height, width, RGB]
         # TBD by Junhyeok Choi
         middle_image_next_step = middle_image
+        step = 0
+        
+        with tqdm(initial = step, total = train_num_steps) as pbar:
+            while step < train_num_steps:
+                total_loss = self.diffusion_model(middle_image_next_step)
+                
+                
+
+            
+        
+
         return middle_image_next_step
 
     def extract_image_feature(self, input):
