@@ -3,8 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import tqdm 
 
+from pathlib import Path
 from ddpm_network import UNet
 from ddpm import DiffusionModel, BaseScheduler
+from ddpm_data import tensor_to_pil_image, get_data_iterator, AFHQDataModule
 
 class IFDM(nn.Module):
     def __init__(self,
@@ -44,11 +46,16 @@ class IFDM(nn.Module):
 
         # Diffusion network
         # TBD by Junhyeok Choi
-        self.num_diffusion_train_timesteps = 10000
+        self.log_interval = 500
+        self.num_diffusion_train_timesteps = 1000
+        self.diffusion_train_num_steps = 1000000
+        self.img_size = (height, width)
+        self.save_dir = Path(f"results/diffusion")
+        self.save_dir.mkdir(exist_ok=True, parents=True)
 
         self.ddpm_network = UNet(
-            T = 10000,
-            image_resolution = (height, width),
+            T = self.num_diffusion_train_timesteps,
+            image_resolution = self.img_size,
             ch = 128,
             ch_mult = [1, 2, 2, 2],
             attn = [1],
@@ -56,14 +63,14 @@ class IFDM(nn.Module):
             dropout = 0.1,
         )
 
-        var_scheduler = BaseScheduler(
+        self.var_scheduler = BaseScheduler(
             self.num_diffusion_train_timesteps,
             beta_1 = 1e-4,
             beta_T = 0.02,
             mode = "linear",
         )
 
-        ddpm = DiffusionModel(self.ddpm_network, var_scheduler)
+        self.ddpm = DiffusionModel(self.ddpm_network, self.var_scheduler)
 
 
     def forward(self, input):
@@ -91,18 +98,63 @@ class IFDM(nn.Module):
             )
 
         return new_image
-
+    
     def IFdiffusion(self, middle_image, merged_feature, train_num_steps):
         # middle_image: [batch_size, num_frame-2, height, width, RGB]
         # merged_feature: [batch_size, num_frame, embedding_dim]
         # middle_image_next_step: [batch_size, num_frame-2, height, width, RGB]
         # TBD by Junhyeok Choi
         middle_image_next_step = middle_image
+        batch_size = middle_image.shape[0]
         step = 0
-        
+
+        optimizer = torch.optim.Adam(self.ddpm.network.parameters(), lr=2e-4)
+        scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optimizer, lr_lambda=lambda t: min((t + 1) / 200, 1.0)
+        )
+        ds_module = AFHQDataModule(
+        "./data",
+        batch_size=batch_size,
+        num_workers=4,
+        max_num_images_per_cat=1000,
+        image_resolution=self.img_size
+    )
+        train_dl = ds_module.train_dataloader()
+        train_it = get_data_iterator(train_dl)
+
+        losses = []
+        step = 0
         with tqdm(initial = step, total = train_num_steps) as pbar:
             while step < train_num_steps:
-                total_loss = self.diffusion_model(middle_image_next_step)
+                if step % self.log_interval == 0:
+                    self.ddpm.eval()
+
+                    samples = self.ddpm.p_sample_loop((batch_size, 3) + self.img_size)
+                    pil_images = tensor_to_pil_image(samples)
+                    for i, img in enumerate(pil_images):
+                        img.save(self.save_dir / f"step={step}-{i}.png")
+
+                    self.ddpm.save(f"{self.save_dir}/last.ckpt")
+                    self.ddpm.train()
+                if step % 1000 == 0:
+                    self.ddpm.save(f"{self.save_dir}/{step}.ckpt")
+                
+                    img, label = next(train_it)
+                    loss = self.ddpm.compute_loss(img)
+                    pbar.set_description(f"Loss: {loss.item():.4f}")
+
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                    scheduler.step()
+                    losses.append(loss.item())
+
+                    step += 1
+                    pbar.update(1)
+                
+
+
+
                 
                 
 
