@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from denoising_diffusion_pytorch import Unet, GaussianDiffusion
 import tqdm 
+
+from ddpm_network import UNet
+from ddpm import DiffusionModel, BaseScheduler
 
 class IFDM(nn.Module):
     def __init__(self,
@@ -42,17 +44,26 @@ class IFDM(nn.Module):
 
         # Diffusion network
         # TBD by Junhyeok Choi
-        self.model = Unet(
-            dim = 64,
-            dim_mults = (1, 2, 4, 8),
-            flash_attn = True
+        self.num_diffusion_train_timesteps = 10000
+
+        self.ddpm_network = UNet(
+            T = 10000,
+            image_resolution = (height, width),
+            ch = 128,
+            ch_mult = [1, 2, 2, 2],
+            attn = [1],
+            num_res_blocks = 4,
+            dropout = 0.1,
         )
-        self.diffusion_model = GaussianDiffusion(
-            model = self.model,
-            image_size = (width, height),
-            timesteps = 100,
-            sampling_timesteps = 100
+
+        var_scheduler = BaseScheduler(
+            self.num_diffusion_train_timesteps,
+            beta_1 = 1e-4,
+            beta_T = 0.02,
+            mode = "linear",
         )
+
+        ddpm = DiffusionModel(self.ddpm_network, var_scheduler)
 
 
     def forward(self, input):
