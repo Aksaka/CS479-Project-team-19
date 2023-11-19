@@ -3,13 +3,19 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch
 
-def train_epoch(model, optimizer, epoch, train_dataset, val_dataset, opts):
+
+def train_epoch(model, optimizer, epoch, train_dataset, opts):
     print("Start train epoch {}".format(epoch))
 
     # Start train
     model.train()
     training_dataloader = DataLoader(train_dataset, batch_size=opts.batch_size, num_workers=1)
-    for batch_id, batch in enumerate(tqdm(training_dataloader)):
+
+    batch_size = opts.batch_size
+    num_iter = int(train_dataset.size(0)/opts.batch_size)
+
+    for i in tqdm(range(num_iter)):
+        batch = train_dataset[i*batch_size:(i+1)*batch_size]
         train_batch(
             model,
             optimizer,

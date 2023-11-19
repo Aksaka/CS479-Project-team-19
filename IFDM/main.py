@@ -28,6 +28,8 @@ def run(opts):
     if opts.use_cuda and torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
 
+    model.to(opts.device)
+
     # Initialize optimizer
     optimizer = optim.Adam(model.parameters(), lr=opts.lr)
 
@@ -49,9 +51,9 @@ def run(opts):
 
     num_dataset = len(dataset)
     rand_indx = torch.randperm(num_dataset)
-    dataset_shuffled = dataset[rand_indx]
+    train_dataset = torch.from_numpy(dataset[rand_indx]).to(opts.device)
 
-    for epoch in range(opts.n_epochs):
+    for epoch in range(opts.n_epoch):
         # Train Model
         train_epoch(
             model,
