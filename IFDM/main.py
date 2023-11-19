@@ -45,33 +45,24 @@ def run(opts):
 
         dataset = torch.cat((dataset1, dataset2), dim=0)
     else:  # opts.dataset_type == "DrivingCar"
-        dataset_path = "DrivingCar/DrivingCarDataset.npy"
-        dataset = torch.from_numpy((np.load(dataset_path)))
+        dataset_path1 = "data/DrivingCarDataset.npy"
+        dataset1 = torch.from_numpy((np.load(dataset_path1)))
+        dataset_path2 = "data/DrivingCarSunDataset.npy"
+        dataset2 = torch.from_numpy((np.load(dataset_path1)))
 
     num_dataset = len(dataset)
     rand_indx = torch.randperm(num_dataset)
     dataset_shuffled = dataset[rand_indx]
 
-    val_dataset = dataset[0:int(num_dataset*opts.val_ratio)]
-    train_dataset = dataset[int(num_dataset*opts.val_ratio):]
-
     for epoch in range(opts.n_epochs):
-        # Load Dataset
-        train_dataset = None
-        # [batch_size, num_frame, image]
         # Train Model
-        output_video = train_epoch(
+        train_epoch(
             model,
             optimizer,
             epoch,
             train_dataset,
-            val_dataset,
             opts
         )
-
-        if epoch == opts.n_epochs-1:
-            pass
-            # save()
 
 if __name__ == "__main__":
     run(get_options())

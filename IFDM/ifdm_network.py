@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import tqdm 
+import time
 
 from pathlib import Path
 from ddpm_network import UNet
@@ -50,7 +51,7 @@ class IFDM(nn.Module):
         self.num_diffusion_train_timesteps = 1000
         self.diffusion_train_num_steps = 1000000
         self.img_size = (height, width)
-        self.save_dir = Path(f"results/diffusion")
+        self.save_dir = Path("results/diffusion/{}".format(time.strftime("%Y%m%dT%H%M%S")))
         self.save_dir.mkdir(exist_ok=True, parents=True)
 
         self.ddpm_network = UNet(
@@ -113,12 +114,12 @@ class IFDM(nn.Module):
             optimizer, lr_lambda=lambda t: min((t + 1) / 200, 1.0)
         )
         ds_module = AFHQDataModule(
-        "./data",
-        batch_size=batch_size,
-        num_workers=4,
-        max_num_images_per_cat=1000,
-        image_resolution=self.img_size
-    )
+            "./data",
+            batch_size=batch_size,
+            num_workers=4,
+            max_num_images_per_cat=1000,
+            image_resolution=self.img_size
+        )
         train_dl = ds_module.train_dataloader()
         train_it = get_data_iterator(train_dl)
 

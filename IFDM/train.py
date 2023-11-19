@@ -17,8 +17,8 @@ def train_epoch(model, optimizer, epoch, train_dataset, val_dataset, opts):
             opts
         )
 
-    avg_cost = validate(model, val_dataset, opts)
-    print("Validation cost : {}".format(avg_cost))
+    # avg_cost = validate(model, val_dataset, opts)
+    # print("Validation cost : {}".format(avg_cost))
 
 
 def train_batch(model, optimizer, dataset, opts):
