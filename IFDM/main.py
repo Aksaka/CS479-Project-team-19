@@ -56,7 +56,11 @@ def run(opts):
     train_dataset = dataset[int(num_dataset*opts.val_ratio):]
 
     for epoch in range(opts.n_epochs):
-        train_epoch(
+        # Load Dataset
+        train_dataset = None
+        # [batch_size, num_frame, image]
+        # Train Model
+        output_video = train_epoch(
             model,
             optimizer,
             epoch,
@@ -64,6 +68,10 @@ def run(opts):
             val_dataset,
             opts
         )
+
+        if epoch == opts.n_epochs-1:
+            pass
+            # save()
 
 if __name__ == "__main__":
     run(get_options())

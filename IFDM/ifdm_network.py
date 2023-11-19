@@ -54,20 +54,20 @@ class IFDM(nn.Module):
         self.save_dir.mkdir(exist_ok=True, parents=True)
 
         self.ddpm_network = UNet(
-            T = self.num_diffusion_train_timesteps,
-            image_resolution = self.img_size,
-            ch = 128,
-            ch_mult = [1, 2, 2, 2],
-            attn = [1],
-            num_res_blocks = 4,
-            dropout = 0.1,
+            T=self.num_diffusion_train_timesteps,
+            image_resolution=self.img_size,
+            ch=128,
+            ch_mult=[1, 2, 2, 2],
+            attn=[1],
+            num_res_blocks=4,
+            dropout=0.1,
         )
 
         self.var_scheduler = BaseScheduler(
             self.num_diffusion_train_timesteps,
-            beta_1 = 1e-4,
-            beta_T = 0.02,
-            mode = "linear",
+            beta_1=1e-4,
+            beta_T=0.02,
+            mode="linear",
         )
 
         self.ddpm = DiffusionModel(self.ddpm_network, self.var_scheduler)
@@ -85,10 +85,10 @@ class IFDM(nn.Module):
         new_image = input
 
         for i in range(self.n_iteration):
-            image_feature = self.extract_image_feature(new_image)  # [batch_size, num_frame, embedding_dim]
-            merged_feature = self.merge_feature(image_feature)  # [batch_size, num_frame-2, embedding_dim]
+            # image_feature = self.extract_image_feature(new_image)  # [batch_size, num_frame, embedding_dim]
+            # merged_feature = self.merge_feature(image_feature)  # [batch_size, num_frame-2, embedding_dim]
 
-            middle_image_next_step = self.IFdiffusion(input[:, 1:-1, :, :, :], merged_feature)  # [batch_size, num_frame, height, width, RGB(3)]
+            middle_image_next_step = self.IFdiffusion(input[:, 1:-1, :, :, :], input)  # [batch_size, num_frame, height, width, RGB(3)]
             new_image = torch.cat(
                 (
                     init_image[:, None, :, :, :],
@@ -124,7 +124,7 @@ class IFDM(nn.Module):
 
         losses = []
         step = 0
-        with tqdm(initial = step, total = train_num_steps) as pbar:
+        with tqdm(initial=step, total=train_num_steps) as pbar:
             while step < train_num_steps:
                 if step % self.log_interval == 0:
                     self.ddpm.eval()
@@ -139,52 +139,45 @@ class IFDM(nn.Module):
                 if step % 1000 == 0:
                     self.ddpm.save(f"{self.save_dir}/{step}.ckpt")
                 
-                    img, label = next(train_it)
-                    loss = self.ddpm.compute_loss(img)
-                    pbar.set_description(f"Loss: {loss.item():.4f}")
+                img, label = next(train_it)
+                loss = self.ddpm.compute_loss(img)  # target_image. img: pred_image
+                pbar.set_description(f"Loss: {loss.item():.4f}")
 
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
-                    scheduler.step()
-                    losses.append(loss.item())
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                scheduler.step()
+                losses.append(loss.item())
 
-                    step += 1
-                    pbar.update(1)
-                
-
-
-
-                
-                
-
-            
-        
+                step += 1
+                pbar.update(1)
 
         return middle_image_next_step
 
-    def extract_image_feature(self, input):
-        # input: [batch_size, num_frame, height, width, RGB]
-        # output: [batch_size, num_frame, 128]
-        batch_size, num_frame, height, width, _ = input.size()
 
-        x = input.view(-1, 3, height, width)
-        x = self.conv_layers(x)
-        x = x.view(x.size(0), -1)
-        x = F.relu(self.fc_layer1(x))
-        x = F.relu(self.fc_layer2(x))
-        x = self.fc_layer3(x)
-        output = x.view(batch_size, num_frame, -1)
-
-        return output
-
-    def merge_feature(self, image_feature):
-        # image_feature: [batch_size, num_frame, embedding_dim]
-        # output: [batch_size, num_frame-2, embedding_dim]
-        feature_prev = image_feature[:, 0:-2, :]  # [batch_size, num_frame-2, embedding_dim]
-        feature_next = image_feature[:, 2:, :]  # [batch_size, num_frame-2, embedding_dim]
-
-        feature_concat = torch.cat((feature_prev, feature_next), dim=-1)
-        feature_merged = self.merge_layer(feature_concat)
-
-        return feature_merged
+    # 보류
+    # def extract_image_feature(self, input):
+    #     # input: [batch_size, num_frame, height, width, RGB]
+    #     # output: [batch_size, num_frame, 128]
+    #     batch_size, num_frame, height, width, _ = input.size()
+    #
+    #     x = input.view(-1, 3, height, width)
+    #     x = self.conv_layers(x)
+    #     x = x.view(x.size(0), -1)
+    #     x = F.relu(self.fc_layer1(x))
+    #     x = F.relu(self.fc_layer2(x))
+    #     x = self.fc_layer3(x)
+    #     output = x.view(batch_size, num_frame, -1)
+    #
+    #     return output
+    #
+    # def merge_feature(self, image_feature):
+    #     # image_feature: [batch_size, num_frame, embedding_dim]
+    #     # output: [batch_size, num_frame-2, embedding_dim]
+    #     feature_prev = image_feature[:, 0:-2, :]  # [batch_size, num_frame-2, embedding_dim]
+    #     feature_next = image_feature[:, 2:, :]  # [batch_size, num_frame-2, embedding_dim]
+    #
+    #     feature_concat = torch.cat((feature_prev, feature_next), dim=-1)
+    #     feature_merged = self.merge_layer(feature_concat)
+    #
+    #     return feature_merged
