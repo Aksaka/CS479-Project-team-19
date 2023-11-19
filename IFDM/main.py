@@ -15,11 +15,6 @@ def run(opts):
     # Set the random seed
     torch.manual_seed(opts.seed)
 
-    os.makedirs(opts.save_dir)
-    # Save arguments so exact configuration can always be found
-    with open(os.path.join(opts.save_dir, "args.json"), 'w') as f:
-        json.dump(vars(opts), f, indent=True)
-
     # Set the device
     opts.device = torch.device("cuda:0" if opts.use_cuda else "cpu")
 
@@ -45,10 +40,12 @@ def run(opts):
 
         dataset = torch.cat((dataset1, dataset2), dim=0)
     else:  # opts.dataset_type == "DrivingCar"
-        dataset_path1 = "data/DrivingCarDataset.npy"
+        dataset_path1 = "dataset/DrivingCarDataset.npy"
         dataset1 = torch.from_numpy((np.load(dataset_path1)))
-        dataset_path2 = "data/DrivingCarSunDataset.npy"
+        dataset_path2 = "dataset/DrivingCarSunDataset.npy"
         dataset2 = torch.from_numpy((np.load(dataset_path1)))
+
+        dataset = np.concatenate((dataset1, dataset2), axis=0)
 
     num_dataset = len(dataset)
     rand_indx = torch.randperm(num_dataset)

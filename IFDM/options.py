@@ -8,7 +8,7 @@ def get_options(args=None):
         description='Diffusion model to generate video through initial and final image'
     )
 
-    parser.add_argument('--num_dataset', default=37, help="The number of instances per batch during training")
+    parser.add_argument('--batch_size', default=15, help="The number of instances per batch during training")
     parser.add_argument('--num_sample_per_dataset', default=15, help="The number of dataset per sample")
     parser.add_argument('--eval_batch_size', default=256, help="The number of instances per batch during training")
     parser.add_argument('--n_epoch', default=100, help="The number of epochs to train")
@@ -29,6 +29,5 @@ def get_options(args=None):
     opts = parser.parse_args(args)
 
     opts.use_cuda = torch.cuda.is_available() and not opts.no_cuda
-    opts.run_name = "{}_{}".format(opts.run_name, time.strftime("%Y%m%dT%H%M%S"))
 
     return opts
