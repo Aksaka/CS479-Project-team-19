@@ -3,6 +3,7 @@ from typing import List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from ddpm_module import DownSample, ResBlock, Swish, TimeEmbedding, UpSample
 from torch.nn import init
 
@@ -54,6 +55,29 @@ class UNet(nn.Module):
             Swish(),
             nn.Conv2d(now_ch, 3, 3, stride=1, padding=1)
         )
+        # for the extract & merging
+        self.embedding_dim = ch
+        self.height, self.width = image_resolution
+
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(3, 8, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(8, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(16, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+        self.fc_layer1 = nn.Linear(16 * (self.height // 8) * (self.width // 8), 1028)
+        self.fc_layer2 = nn.Linear(1028, 512)
+        self.fc_layer3 = nn.Linear(512, self.embedding_dim)
+
+        # Feature merging network
+        self.merge_layer = nn.Linear(2*self.embedding_dim, self.embedding_dim)
+
+
         self.initialize()
 
     def initialize(self):
@@ -64,23 +88,54 @@ class UNet(nn.Module):
 
     def forward(self, x, timestep, class_label=None):
         # Timestep embedding
+        batch_size, num_frame, RGB, height, width = x.size()
+
         temb = self.time_embedding(timestep)
+        temb_new = torch.repeat_interleave(temb, num_frame-2, dim=0)
+        
+        # extract features from input x
+        extracted_x = self.extract_features(x)  # [batch_size, num_frame, self.embedding_dim, height, width]
+        # merging features (neighboring noises average)
+        merged_x = self.merge_features(extracted_x)  # [batch_size, num_frame-2, self.embedding_dim, height, width]
+        h = merged_x.reshape(-1, self.embedding_dim, height, width)  # [batch_size*(num_frame-2), self.embedding_dim]
+        # h = merged_x
 
         # Downsampling
-        h = self.head(x)
         hs = [h]
         for layer in self.downblocks:
-            h = layer(h, temb)
+            h = layer(h, temb_new)
             hs.append(h)
         # Middle
         for layer in self.middleblocks:
-            h = layer(h, temb)
+            h = layer(h, temb_new)
         # Upsampling
         for layer in self.upblocks:
             if isinstance(layer, ResBlock):
                 h = torch.cat([h, hs.pop()], dim=1)
-            h = layer(h, temb)
+            h = layer(h, temb_new)
         h = self.tail(h)
 
         assert len(hs) == 0
         return h
+    
+    def extract_features(self, x):
+        # extract the x's features
+        batch_size, num_frame, RGB, height, width = x.size()
+
+        x = x.reshape(-1, RGB, height, width)
+        x = self.head(x)
+
+        return x.reshape([batch_size, num_frame, self.embedding_dim, height, width])
+    
+    def merge_features(self, features):
+        # merging neighboring features
+        # features: [batch_size, self.embedding_dim]
+        feature_prev = features[:, 0:-2, :]  # [batch_size, num_frame-2, embedding_dim]
+        feature_next = features[:, 2:, :]  # [batch_size, num_frame-2, embedding_dim]
+
+        # feature_concat = torch.cat((feature_prev, feature_next), dim=-1)
+        # feature_merged = self.merge_layer(feature_concat)
+
+        feature_merged = feature_prev + feature_next
+
+        return feature_merged

@@ -57,6 +57,25 @@ class DiffusionModel(nn.Module):
     @property
     def device(self):
         return next(self.network.parameters()).device
+
+    def q_sample(self, x0, t, noise=None):
+        """
+        sample x_t from q(x_t | x_0) of DDPM.
+
+        Input:
+            x0 (`torch.Tensor`): clean data to be mapped to timestep t in the forward process of DDPM.
+            t (`torch.Tensor`): timestep
+            noise (`torch.Tensor`, optional): random Gaussian noise. if None, randomly sample Gaussian noise in the function.
+        Output:
+            xt (`torch.Tensor`): noisy samples
+        """
+        if noise is None:
+            noise = torch.randn_like(x0)
+
+        alphas_prod_t = extract(self.var_scheduler.alphas_cumprod, t, x0)
+        xt = alphas_prod_t.sqrt() * x0 + (1 - alphas_prod_t).sqrt() * noise
+
+        return xt
     
     @torch.no_grad()
     def p_sample(self, xt, t):
@@ -109,3 +128,22 @@ class DiffusionModel(nn.Module):
             x0_pred = self.p_sample(x0_pred, t)
 
         return x0_pred
+
+    def compute_loss(self, x0):
+        # x0: [batch_size, num_frame, images]
+        # DO NOT change the code outside this part.
+        # compute noise matching loss.]
+
+        batch_size, num_frame, RGB, height, width = x0.size()
+        t = (
+            torch.randint(0, self.var_scheduler.num_train_timesteps, size=(batch_size,))
+            .to(x0.device)
+            .long()
+        )
+
+        noise = torch.randn_like(x0.float())  # [10, 30, 3, 180, 320]
+        xt_pred = self.q_sample(x0, t, noise)   # noisy image
+        eps_theta = self.network(xt_pred, t)
+        loss = F.mse_loss(noise[:, 1:-2, :, :, :], eps_theta)
+        ######################
+        return loss

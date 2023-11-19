@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import tqdm 
+from tqdm import tqdm
 import time
 
 from pathlib import Path
@@ -12,12 +12,10 @@ from ddpm_data import tensor_to_pil_image, get_data_iterator, AFHQDataModule
 class IFDM(nn.Module):
     def __init__(self,
                  embedding_dim,
-                 dataset_type,
-                 n_iteration):
+                 dataset_type):
         super(IFDM, self).__init__()
 
         self.embedding_dim = embedding_dim
-        self.n_iteration = n_iteration
 
         if dataset_type == 'BattleGround':
             height = 200
@@ -76,7 +74,7 @@ class IFDM(nn.Module):
 
     def forward(self, input):
         # input -> extract_image_feature -> merge_feature -> diffusion
-        # input: [batch_size, num_frame(30), height, width, RGB(3)]
+        # input: [batch_size, num_frame(30), RGB(3), height, width]
         batch_size, num_frame, height, width, _ = input.size()
 
         # 이 파트에 처음이랑 마지막 이미지만 남기고 나머지 noise로 만드는 파트 추가해야됨
@@ -85,73 +83,53 @@ class IFDM(nn.Module):
         final_image = input[:, -1, :, :, :]
         new_image = input
 
-        for i in range(self.n_iteration):
-            # image_feature = self.extract_image_feature(new_image)  # [batch_size, num_frame, embedding_dim]
-            # merged_feature = self.merge_feature(image_feature)  # [batch_size, num_frame-2, embedding_dim]
+        # image_feature = self.extract_image_feature(new_image)  # [batch_size, num_frame, embedding_dim]
+        # merged_feature = self.merge_feature(image_feature)  # [batch_size, num_frame-2, embedding_dim]
 
-            middle_image_next_step = self.IFdiffusion(input[:, 1:-1, :, :, :], input)  # [batch_size, num_frame, height, width, RGB(3)]
-            new_image = torch.cat(
-                (
-                    init_image[:, None, :, :, :],
-                    middle_image_next_step,
-                    final_image[:, None, :, :, :]
-                ), dim=1
-            )
+        middle_image_diffusion = self.IFdiffusion(input, self.num_diffusion_train_timesteps)  # [batch_size, num_frame, height, width, RGB(3)]
+        new_image = torch.cat(
+            (
+                init_image[:, None, :, :, :],
+                middle_image_diffusion,
+                final_image[:, None, :, :, :]
+            ), dim=1
+        )
 
         return new_image
     
-    def IFdiffusion(self, middle_image, merged_feature, train_num_steps):
-        # middle_image: [batch_size, num_frame-2, height, width, RGB]
+    def IFdiffusion(self, images, train_num_steps):
+        # images: [batch_size, num_frame-2, RGB, height, width]
         # merged_feature: [batch_size, num_frame, embedding_dim]
         # middle_image_next_step: [batch_size, num_frame-2, height, width, RGB]
         # TBD by Junhyeok Choi
-        middle_image_next_step = middle_image
-        batch_size = middle_image.shape[0]
-        step = 0
+        middle_image_next_step = images
+        batch_size, num_frame, RGB, height, width = images.size()
 
         optimizer = torch.optim.Adam(self.ddpm.network.parameters(), lr=2e-4)
         scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer, lr_lambda=lambda t: min((t + 1) / 200, 1.0)
         )
-        ds_module = AFHQDataModule(
-            "./data",
-            batch_size=batch_size,
-            num_workers=4,
-            max_num_images_per_cat=1000,
-            image_resolution=self.img_size
-        )
-        train_dl = ds_module.train_dataloader()
-        train_it = get_data_iterator(train_dl)
 
-        losses = []
-        step = 0
-        with tqdm(initial=step, total=train_num_steps) as pbar:
-            while step < train_num_steps:
-                if step % self.log_interval == 0:
-                    self.ddpm.eval()
+        # if step % self.log_interval == 0:
+        #     self.ddpm.eval()
+        #
+        #     samples = self.ddpm.p_sample_loop((batch_size_train, RGB) + self.img_size)
+        #     pil_images = tensor_to_pil_image(samples)
+        #     # for i, img in enumerate(pil_images):
+        #     #     img.save(self.save_dir / f"step={step}-{i}.png")
+        #
+        #     self.ddpm.save(f"{self.save_dir}/last.ckpt")
+        #     self.ddpm.train()
+        # if step % 1000 == 0:
+        #     self.ddpm.save(f"{self.save_dir}/{step}.ckpt")
 
-                    samples = self.ddpm.p_sample_loop((batch_size, 3) + self.img_size)
-                    pil_images = tensor_to_pil_image(samples)
-                    for i, img in enumerate(pil_images):
-                        img.save(self.save_dir / f"step={step}-{i}.png")
+        # images: [batch_size, num_frame, images]
+        loss = self.ddpm.compute_loss(images)  # target_image. img: pred_image
 
-                    self.ddpm.save(f"{self.save_dir}/last.ckpt")
-                    self.ddpm.train()
-                if step % 1000 == 0:
-                    self.ddpm.save(f"{self.save_dir}/{step}.ckpt")
-                
-                img, label = next(train_it)
-                loss = self.ddpm.compute_loss(img)  # target_image. img: pred_image
-                pbar.set_description(f"Loss: {loss.item():.4f}")
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                scheduler.step()
-                losses.append(loss.item())
-
-                step += 1
-                pbar.update(1)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
 
         return middle_image_next_step
 

@@ -29,33 +29,29 @@ def train_epoch(model, optimizer, epoch, train_dataset, opts):
 
 def train_batch(model, optimizer, dataset, opts):
     dataset = dataset.to(opts.device)  # [batch_size, num_frame, height, width, 3(RGB)]
+    dataset = torch.cat(
+        (
+            dataset[:, :, :, :, 0].unsqueeze(2),
+            dataset[:, :, :, :, 1].unsqueeze(2),
+            dataset[:, :, :, :, 2].unsqueeze(2)
+        ), dim=2
+    )
     output_video = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
-    loss = get_loss(dataset, output_video)
-
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
 
 
-def get_loss(ground_truth, pred):
-    loss_func = nn.MSELoss()
-    loss = loss_func(ground_truth, pred)
-    return loss
-
-
-def validate(model, val_dataset, opts):
-    print("Validating......")
-    model.eval()
-
-    def eval_model_bat(bat):
-        with torch.no_grad():
-            pred = model(bat.to(opts.device))
-        return pred
-
-    pred = torch.cat([
-        eval_model_bat(bat)
-        for bat
-        in tqdm(DataLoader(val_dataset, batch_size=opts.eval_batch_size), disable=opts.no_progress_bar)
-    ], 0)
-
-    return get_loss(val_dataset, pred).cpu()
+# def validate(model, val_dataset, opts):
+#     print("Validating......")
+#     model.eval()
+#
+#     def eval_model_bat(bat):
+#         with torch.no_grad():
+#             pred = model(bat.to(opts.device))
+#         return pred
+#
+#     pred = torch.cat([
+#         eval_model_bat(bat)
+#         for bat
+#         in tqdm(DataLoader(val_dataset, batch_size=opts.eval_batch_size), disable=opts.no_progress_bar)
+#     ], 0)
+#
+#     return get_loss(val_dataset, pred).cpu()

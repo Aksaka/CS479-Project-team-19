@@ -21,8 +21,7 @@ def run(opts):
     # Initialize model
     model = IFDM(
         opts.embedding_dim,
-        opts.dataset_type,
-        opts.n_iteration
+        opts.dataset_type
     ).to(opts.device)
 
     if opts.use_cuda and torch.cuda.device_count() > 1:
@@ -51,7 +50,7 @@ def run(opts):
 
     num_dataset = len(dataset)
     rand_indx = torch.randperm(num_dataset)
-    train_dataset = torch.from_numpy(dataset[rand_indx]).to(opts.device)
+    train_dataset = torch.from_numpy(dataset[rand_indx])
 
     for epoch in range(opts.n_epoch):
         # Train Model
