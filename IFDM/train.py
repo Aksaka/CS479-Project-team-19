@@ -19,6 +19,8 @@ def train_epoch(model, optimizer, epoch, train_dataset, opts):
     num_iter = int(train_dataset.size(0)/opts.batch_size)
 
     for i in tqdm(range(num_iter)):
+        end_flag = (i == num_iter-1)
+
         batch = train_dataset[i*batch_size:(i+1)*batch_size]
         train_batch(
             model,
@@ -26,14 +28,14 @@ def train_epoch(model, optimizer, epoch, train_dataset, opts):
             batch,
             opts,
             i,
-            num_iter
+            end_flag
         )
 
     # avg_cost = validate(model, val_dataset, opts)
     # print("Validation cost : {}".format(avg_cost))
 
 
-def train_batch(model, optimizer, dataset, opts, i, max_i):
+def train_batch(model, optimizer, dataset, opts, i, end_flag):
     dataset = dataset.to(opts.device)  # [batch_size, num_frame, height, width, 3(RGB)]
     dataset = torch.cat(
         (
@@ -45,7 +47,7 @@ def train_batch(model, optimizer, dataset, opts, i, max_i):
     optimizer.zero_grad()
     loss, output_video = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
 
-    if ( i == (max_i - 1) ):
+    if (end_flag): # save the last frame when the epoch is end
         save_dir = Path(opts.save_dir)
         save_dir.mkdir(exist_ok=True, parents=True)
         output_image = tensor_to_pil_image(output_video[-1, -1, :, :, :])

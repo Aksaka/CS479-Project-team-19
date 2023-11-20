@@ -77,7 +77,7 @@ class IFDM(nn.Module):
         self.ddpm = DiffusionModel(self.ddpm_network, self.var_scheduler)
 
 
-    def forward(self, input):
+    def forward(self, input, end_flag):
         # input -> extract_image_feature -> merge_feature -> diffusion
         # input: [batch_size, num_frame(30), RGB(3), height, width]
         batch_size, num_frame, height, width, _ = input.size()
@@ -91,7 +91,7 @@ class IFDM(nn.Module):
         # image_feature = self.extract_image_feature(new_image)  # [batch_size, num_frame, embedding_dim]
         # merged_feature = self.merge_feature(image_feature)  # [batch_size, num_frame-2, embedding_dim]
 
-        loss, middle_image_diffusion = self.IFdiffusion(input, self.num_diffusion_train_timesteps)  # [batch_size, num_frame, height, width, RGB(3)]
+        loss, middle_image_diffusion = self.IFdiffusion(input, self.num_diffusion_train_timesteps, end_flag)  # [batch_size, num_frame, height, width, RGB(3)]
         new_image = torch.cat(
             (
                 init_image[:, None, :, :, :],
@@ -102,7 +102,7 @@ class IFDM(nn.Module):
 
         return loss, new_image
     
-    def IFdiffusion(self, images, train_num_steps):
+    def IFdiffusion(self, images, end_flag):
         # images: [batch_size, num_frame-2, RGB, height, width]
         # merged_feature: [batch_size, num_frame, embedding_dim]
         # middle_image_next_step: [batch_size, num_frame-2, height, width, RGB]
@@ -130,7 +130,8 @@ class IFDM(nn.Module):
 
         # images: [batch_size, num_frame, images]
         loss = self.ddpm.compute_loss(images)  # target_image. img: pred_image
-        middle_image_next_step = self.ddpm.p_sample_loop((batch_size, num_frame, RGB, height, width))
+        if(end_flag):
+            middle_image_next_step = self.ddpm.p_sample_loop((batch_size, num_frame, RGB, height, width))
 
         return loss, middle_image_next_step
 
