@@ -61,7 +61,7 @@ def train_batch(model, optimizer, dataset, opts, i, end_flag):
         
         for i in range(num_frame):
             output.write(frame_array[i])
-        output.release
+        output.release()
         #output_image.save(save_dir / f"last_image.png") 
 
 
