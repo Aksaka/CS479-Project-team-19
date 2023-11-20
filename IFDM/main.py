@@ -20,8 +20,8 @@ def run(opts):
 
     # Initialize model
     model = IFDM(
-        opts.embedding_dim,
-        opts.dataset_type,
+        embedding_dim=opts.embedding_dim,
+        dataset_type=opts.dataset_type,
         num_diffusion_train_timesteps=1000,
         ch=128,
         ch_mult=[1, 2, 2, 2],

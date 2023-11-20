@@ -30,29 +30,29 @@ class IFDM(nn.Module):
             width = 320
 
         # Preprocessing network
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(8, 16, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(16, 16, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)
-        )
-        self.fc_layer1 = nn.Linear(16 * (height // 8) * (width // 8), 1028)
-        self.fc_layer2 = nn.Linear(1028, 512)
-        self.fc_layer3 = nn.Linear(512, embedding_dim)
+        # self.conv_layers = nn.Sequential(
+        #     nn.Conv2d(3, 8, kernel_size=3, padding=1),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d(kernel_size=2, stride=2),
+        #     nn.Conv2d(8, 16, kernel_size=3, padding=1),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d(kernel_size=2, stride=2),
+        #     nn.Conv2d(16, 16, kernel_size=3, padding=1),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d(kernel_size=2, stride=2)
+        # )
+        # self.fc_layer1 = nn.Linear(16 * (height // 8) * (width // 8), 1028)
+        # self.fc_layer2 = nn.Linear(1028, 512)
+        # self.fc_layer3 = nn.Linear(512, embedding_dim)
 
         # Feature merging network
-        self.merge_layer = nn.Linear(2*embedding_dim, embedding_dim)
+        # self.merge_layer = nn.Linear(2*embedding_dim, embedding_dim)
 
         # Diffusion network
         # TBD by Junhyeok Choi
         self.log_interval = 500
         self.num_diffusion_train_timesteps = num_diffusion_train_timesteps
-        self.diffusion_train_num_steps = 1000000
+        # self.diffusion_train_num_steps = 1000000
         self.img_size = (height, width)
         self.save_dir = Path("results/diffusion/{}".format(time.strftime("%Y%m%dT%H%M%S")))
         self.save_dir.mkdir(exist_ok=True, parents=True)
@@ -110,10 +110,10 @@ class IFDM(nn.Module):
         middle_image_next_step = images
         batch_size, num_frame, RGB, height, width = images.size()
 
-        optimizer = torch.optim.Adam(self.ddpm.network.parameters(), lr=2e-4)
-        scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optimizer, lr_lambda=lambda t: min((t + 1) / 200, 1.0)
-        )
+        # optimizer = torch.optim.Adam(self.ddpm.network.parameters(), lr=2e-4)
+        # scheduler = torch.optim.lr_scheduler.LambdaLR(
+        #     optimizer, lr_lambda=lambda t: min((t + 1) / 200, 1.0)
+        # )
 
         # if step % self.log_interval == 0:
         #     self.ddpm.eval()
