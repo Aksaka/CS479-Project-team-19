@@ -8,7 +8,7 @@ def get_options(args=None):
         description='Diffusion model to generate video through initial and final image'
     )
 
-    parser.add_argument('--batch_size', default=10, help="The number of instances per batch during training")
+    parser.add_argument('--batch_size', default=1, help="The number of instances per batch during training")
     parser.add_argument('--eval_batch_size', default=256, help="The number of instances per batch during training")
     parser.add_argument('--n_epoch', default=5000, help="The number of epochs to train")
     parser.add_argument('--val_ratio', default=0.1, help="The ratio of the validation dataset")

@@ -14,7 +14,10 @@ def train_epoch(model, optimizer, epoch, train_dataset, opts):
 
     # Start train
     model.train()
-    training_dataloader = DataLoader(train_dataset, batch_size=opts.batch_size, num_workers=1)
+
+    num_dataset = len(train_dataset)
+    rand_indx = torch.randperm(num_dataset)
+    train_dataset = train_dataset[rand_indx]
 
     batch_size = opts.batch_size
     num_iter = int(train_dataset.size(0)/opts.batch_size)
@@ -46,7 +49,7 @@ def train_batch(model, optimizer, dataset, opts, i, end_flag):
         ), dim=2
     )
     optimizer.zero_grad()
-    loss, output_video_tensor = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
+    loss, output_video_tensor = model(dataset, end_flag)  # [batch_size, num_frame, height, width, 3(RGB)]
 
     if (end_flag): # save the last frame when the epoch is end
         batch_size, num_frame, height, width, RGB = output_video_tensor.size()

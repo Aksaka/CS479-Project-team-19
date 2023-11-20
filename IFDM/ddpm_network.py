@@ -9,11 +9,11 @@ from torch.nn import init
 
 
 class UNet(nn.Module):
-    def __init__(self, T=1000, image_resolution=(64, 64), ch=128, ch_mult=[1,2,2,2], attn=[1], num_res_blocks=4, dropout=0.1):
+    def __init__(self, T, image_resolution, ch, ch_mult, attn, num_res_blocks, dropout):
         super().__init__()
         self.image_resolution = image_resolution
         assert all([i < len(ch_mult) for i in attn]), 'attn index out of bound'
-        tdim = ch * 4
+        tdim = ch * 1
         # self.time_embedding = TimeEmbedding(T, ch, tdim)
         self.time_embedding = TimeEmbedding(tdim)
 
@@ -72,7 +72,7 @@ class UNet(nn.Module):
         batch_size, num_frame, RGB, height, width = x.size()
 
         temb = self.time_embedding(timestep)
-        temb_new = torch.repeat_interleave(temb, num_frame-2, dim=0)
+        temb = torch.repeat_interleave(temb, num_frame-2, dim=0)
         
         # extract features from input x
         extracted_x = self.extract_features(x)  # [batch_size, num_frame, self.embedding_dim, height, width]
@@ -84,16 +84,16 @@ class UNet(nn.Module):
         # Downsampling
         hs = [h]
         for layer in self.downblocks:
-            h = layer(h, temb_new)
+            h = layer(h, temb)
             hs.append(h)
         # Middle
         for layer in self.middleblocks:
-            h = layer(h, temb_new)
+            h = layer(h, temb)
         # Upsampling
         for layer in self.upblocks:
             if isinstance(layer, ResBlock):
                 h = torch.cat([h, hs.pop()], dim=1)
-            h = layer(h, temb_new)
+            h = layer(h, temb)
         h = self.tail(h)
 
         assert len(hs) == 0

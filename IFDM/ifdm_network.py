@@ -66,7 +66,7 @@ class IFDM(nn.Module):
         init_image = input[:, 0, :, :, :]
         final_image = input[:, -1, :, :, :]
 
-        loss, middle_image_diffusion = self.IFdiffusion(input, self.num_diffusion_train_timesteps, end_flag)  # [batch_size, num_frame, height, width, RGB(3)]
+        loss, middle_image_diffusion = self.IFdiffusion(input, end_flag)  # [batch_size, num_frame, height, width, RGB(3)]
         new_image = torch.cat(
             (
                 init_image[:, None, :, :, :],
