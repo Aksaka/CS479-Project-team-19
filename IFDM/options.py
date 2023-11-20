@@ -17,6 +17,7 @@ def get_options(args=None):
 
     parser.add_argument('--dataset_type', default='DrivingCar', help="Dataset to be used in the training, 'DrivingCar' 'BattleGround'")
     parser.add_argument('--embedding_dim', default=128, help="Dimension of feature embedding")
+    parser.add_argument('--save_dir', default= 'results/diffusion/{}'.format(time.strftime("%Y%m%dT%H%M%S")) , help="Directory path to save the results")
 
     parser.add_argument('--no_cuda', action='store_true', help='Disable CUDA')
     parser.add_argument('--no_progress_bar', action='store_true', help='Disable progress bar')

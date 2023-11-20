@@ -2,6 +2,10 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch
+import time
+
+from pathlib import Path
+from ddpm_data import tensor_to_pil_image
 
 
 def train_epoch(model, optimizer, epoch, train_dataset, opts):
@@ -21,14 +25,15 @@ def train_epoch(model, optimizer, epoch, train_dataset, opts):
             optimizer,
             batch,
             opts,
-            i
+            i,
+            num_iter
         )
 
     # avg_cost = validate(model, val_dataset, opts)
     # print("Validation cost : {}".format(avg_cost))
 
 
-def train_batch(model, optimizer, dataset, opts, i):
+def train_batch(model, optimizer, dataset, opts, i, max_i):
     dataset = dataset.to(opts.device)  # [batch_size, num_frame, height, width, 3(RGB)]
     dataset = torch.cat(
         (
@@ -39,6 +44,13 @@ def train_batch(model, optimizer, dataset, opts, i):
     )
     optimizer.zero_grad()
     loss, output_video = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
+
+    if (i == max_i):
+        save_dir = Path(opts.save_dir)
+        save_dir.mkdir(exist_ok=True, parents=True)
+        output_image = tensor_to_pil_image(output_video[-1, -1, :, :, :])
+        output_image.save(save_dir / f"last_image.png") 
+
 
     loss.backward()
     optimizer.step()
