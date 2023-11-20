@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch
 import time
+import cv2
 
 from pathlib import Path
 from ddpm_data import tensor_to_pil_image
@@ -45,13 +46,23 @@ def train_batch(model, optimizer, dataset, opts, i, end_flag):
         ), dim=2
     )
     optimizer.zero_grad()
-    loss, output_video = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
+    loss, output_video_tensor = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
 
     if (end_flag): # save the last frame when the epoch is end
+        batch_size, num_frame, height, width, RGB = output_video_tensor.size()
         save_dir = Path(opts.save_dir)
         save_dir.mkdir(exist_ok=True, parents=True)
-        output_image = tensor_to_pil_image(output_video[-1, -1, :, :, :])
-        output_image.save(save_dir / f"last_image.png") 
+        frame_array = []
+        
+        for i in range(num_frame):
+            output_image = tensor_to_pil_image(output_video_tensor[-1, i, :, :, :])
+            frame_array.append(output_image)
+        output = cv2.VideoWriter(opts.save_dir + '/output.mp4', cv2.VideoWriter_fourcc(*'DIVX'), (width, height))
+        
+        for i in range(num_frame):
+            output.write(frame_array[i])
+        output.release
+        #output_image.save(save_dir / f"last_image.png") 
 
 
     loss.backward()
