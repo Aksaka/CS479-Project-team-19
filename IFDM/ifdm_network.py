@@ -12,7 +12,12 @@ from ddpm_data import tensor_to_pil_image, get_data_iterator, AFHQDataModule
 class IFDM(nn.Module):
     def __init__(self,
                  embedding_dim,
-                 dataset_type):
+                 dataset_type,
+                 num_diffusion_train_timesteps,
+                 ch,
+                 ch_mult,
+                 num_res_blocks
+                 ):
         super(IFDM, self).__init__()
 
         self.embedding_dim = embedding_dim
@@ -46,7 +51,7 @@ class IFDM(nn.Module):
         # Diffusion network
         # TBD by Junhyeok Choi
         self.log_interval = 500
-        self.num_diffusion_train_timesteps = 1000
+        self.num_diffusion_train_timesteps = num_diffusion_train_timesteps
         self.diffusion_train_num_steps = 1000000
         self.img_size = (height, width)
         self.save_dir = Path("results/diffusion/{}".format(time.strftime("%Y%m%dT%H%M%S")))
@@ -55,10 +60,10 @@ class IFDM(nn.Module):
         self.ddpm_network = UNet(
             T=self.num_diffusion_train_timesteps,
             image_resolution=self.img_size,
-            ch=128,
-            ch_mult=[1, 2, 2, 2],
+            ch=ch,
+            ch_mult=ch_mult,
             attn=[1],
-            num_res_blocks=4,
+            num_res_blocks=num_res_blocks,
             dropout=0.1,
         )
 
@@ -86,7 +91,7 @@ class IFDM(nn.Module):
         # image_feature = self.extract_image_feature(new_image)  # [batch_size, num_frame, embedding_dim]
         # merged_feature = self.merge_feature(image_feature)  # [batch_size, num_frame-2, embedding_dim]
 
-        middle_image_diffusion = self.IFdiffusion(input, self.num_diffusion_train_timesteps)  # [batch_size, num_frame, height, width, RGB(3)]
+        loss, middle_image_diffusion = self.IFdiffusion(input, self.num_diffusion_train_timesteps)  # [batch_size, num_frame, height, width, RGB(3)]
         new_image = torch.cat(
             (
                 init_image[:, None, :, :, :],
@@ -95,7 +100,7 @@ class IFDM(nn.Module):
             ), dim=1
         )
 
-        return new_image
+        return loss, new_image
     
     def IFdiffusion(self, images, train_num_steps):
         # images: [batch_size, num_frame-2, RGB, height, width]
@@ -126,12 +131,7 @@ class IFDM(nn.Module):
         # images: [batch_size, num_frame, images]
         loss = self.ddpm.compute_loss(images)  # target_image. img: pred_image
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        scheduler.step()
-
-        return middle_image_next_step
+        return loss, middle_image_next_step
 
 
     # 보류

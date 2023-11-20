@@ -20,14 +20,15 @@ def train_epoch(model, optimizer, epoch, train_dataset, opts):
             model,
             optimizer,
             batch,
-            opts
+            opts,
+            i
         )
 
     # avg_cost = validate(model, val_dataset, opts)
     # print("Validation cost : {}".format(avg_cost))
 
 
-def train_batch(model, optimizer, dataset, opts):
+def train_batch(model, optimizer, dataset, opts, i):
     dataset = dataset.to(opts.device)  # [batch_size, num_frame, height, width, 3(RGB)]
     dataset = torch.cat(
         (
@@ -36,7 +37,13 @@ def train_batch(model, optimizer, dataset, opts):
             dataset[:, :, :, :, 2].unsqueeze(2)
         ), dim=2
     )
-    output_video = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
+    optimizer.zero_grad()
+    loss, output_video = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
+
+    loss.backward()
+    optimizer.step()
+
+    # input i 가지고 마지막이면 저장하는 거 추가
 
 
 # def validate(model, val_dataset, opts):

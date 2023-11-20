@@ -21,8 +21,13 @@ def run(opts):
     # Initialize model
     model = IFDM(
         opts.embedding_dim,
-        opts.dataset_type
+        opts.dataset_type,
+        num_diffusion_train_timesteps=1000,
+        ch=128,
+        ch_mult=[1, 2, 2, 2],
+        num_res_blocks=4
     ).to(opts.device)
+
 
     if opts.use_cuda and torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)

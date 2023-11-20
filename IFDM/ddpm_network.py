@@ -55,27 +55,28 @@ class UNet(nn.Module):
             Swish(),
             nn.Conv2d(now_ch, 3, 3, stride=1, padding=1)
         )
-        # for the extract & merging
+
+        # # for the extract & merging
         self.embedding_dim = ch
         self.height, self.width = image_resolution
 
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(8, 16, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(16, 16, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)
-        )
-        self.fc_layer1 = nn.Linear(16 * (self.height // 8) * (self.width // 8), 1028)
-        self.fc_layer2 = nn.Linear(1028, 512)
-        self.fc_layer3 = nn.Linear(512, self.embedding_dim)
-
-        # Feature merging network
-        self.merge_layer = nn.Linear(2*self.embedding_dim, self.embedding_dim)
+        # self.conv_layers = nn.Sequential(
+        #     nn.Conv2d(3, 8, kernel_size=3, padding=1),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d(kernel_size=2, stride=2),
+        #     nn.Conv2d(8, 16, kernel_size=3, padding=1),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d(kernel_size=2, stride=2),
+        #     nn.Conv2d(16, 16, kernel_size=3, padding=1),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d(kernel_size=2, stride=2)
+        # )
+        # self.fc_layer1 = nn.Linear(16 * (self.height // 8) * (self.width // 8), 1028)
+        # self.fc_layer2 = nn.Linear(1028, 512)
+        # self.fc_layer3 = nn.Linear(512, self.embedding_dim)
+        #
+        # # Feature merging network
+        # self.merge_layer = nn.Linear(2*self.embedding_dim, self.embedding_dim)
 
 
         self.initialize()
