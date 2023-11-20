@@ -45,7 +45,7 @@ def train_batch(model, optimizer, dataset, opts, i, max_i):
     optimizer.zero_grad()
     loss, output_video = model(dataset)  # [batch_size, num_frame, height, width, 3(RGB)]
 
-    if (i == max_i):
+    if ( i == (max_i - 1) ):
         save_dir = Path(opts.save_dir)
         save_dir.mkdir(exist_ok=True, parents=True)
         output_image = tensor_to_pil_image(output_video[-1, -1, :, :, :])
