@@ -24,7 +24,8 @@ def run(opts):
         dataset_type=opts.dataset_type,
         num_diffusion_train_timesteps=1000,
         ch=128,
-        ch_mult=[1, 2],
+        ch_mult=[1, 2, 2, 2],
+        attn=[1],
         num_res_blocks=4
     ).to(opts.device)
 
@@ -46,7 +47,7 @@ def run(opts):
 
         train_dataset = torch.cat((dataset1, dataset2), dim=0)
     else:  # opts.dataset_type == "DrivingCar"
-        dataset_path = 'dataset/DrivingCarDataset.pt'
+        dataset_path = 'dataset/DrivingCarDataset100.pt'
         train_dataset = torch.load(dataset_path)
 
     train_dataset = torch.cat(

@@ -16,6 +16,7 @@ class IFDM(nn.Module):
                  num_diffusion_train_timesteps,
                  ch,
                  ch_mult,
+                 attn,
                  num_res_blocks
                  ):
         super(IFDM, self).__init__()
@@ -43,7 +44,7 @@ class IFDM(nn.Module):
             image_resolution=self.img_size,
             ch=ch,
             ch_mult=ch_mult,
-            attn=[1],
+            attn=attn,
             num_res_blocks=num_res_blocks,
             dropout=0.1,
         )

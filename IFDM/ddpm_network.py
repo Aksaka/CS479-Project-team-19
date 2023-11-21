@@ -13,7 +13,7 @@ class UNet(nn.Module):
         super().__init__()
         self.image_resolution = image_resolution
         assert all([i < len(ch_mult) for i in attn]), 'attn index out of bound'
-        tdim = ch * 1
+        tdim = ch * 4
         # self.time_embedding = TimeEmbedding(T, ch, tdim)
         self.time_embedding = TimeEmbedding(tdim)
 
@@ -73,13 +73,12 @@ class UNet(nn.Module):
 
         temb = self.time_embedding(timestep)
         temb = torch.repeat_interleave(temb, num_frame-2, dim=0)
-        
+
         # extract features from input x
-        extracted_x = self.extract_features(x)  # [batch_size, num_frame, self.embedding_dim, height, width]
+        x = self.extract_features(x)  # [batch_size, num_frame, self.embedding_dim, height, width]
         # merging features (neighboring noises average)
-        merged_x = self.merge_features(extracted_x)  # [batch_size, num_frame-2, self.embedding_dim, height, width]
-        h = merged_x.reshape(-1, self.embedding_dim, height, width)  # [batch_size*(num_frame-2), self.embedding_dim]
-        # h = merged_x
+        x = self.merge_features(x)  # [batch_size, num_frame-2, self.embedding_dim, height, width]
+        h = x.reshape(-1, self.embedding_dim, height, width)  # [batch_size*(num_frame-2), self.embedding_dim]
 
         # Downsampling
         hs = [h]
