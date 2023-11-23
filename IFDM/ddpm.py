@@ -144,6 +144,8 @@ class DiffusionModel(nn.Module):
         noise = torch.randn_like(x0.float())  # [10, 30, 3, 180, 320]
         xt_pred = self.q_sample(x0, t, noise)   # noisy image
         eps_theta = self.network(xt_pred, t)
-        loss = F.mse_loss(noise[:, 1:-2, :, :, :], eps_theta)
+        noise = noise[:, 1:-1, :, :, :].reshape([-1, RGB, height, width])
+
+        loss = F.mse_loss(noise, eps_theta)
         ######################
         return loss
