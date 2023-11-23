@@ -68,7 +68,7 @@ def train_batch(model, optimizer, dataset, opts, i, end_flag):
         #output_image.save(save_dir / f"last_image.png") 
 
 
-    loss.backward()
+    loss.mean().backward()
     optimizer.step()
 
     # input i 가지고 마지막이면 저장하는 거 추가
