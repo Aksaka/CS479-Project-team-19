@@ -56,7 +56,7 @@ class DiffusionModel(nn.Module):
 
     @property
     def device(self):
-        return next(self.network.parameters()).device
+        return self.network.parameters().device
 
     def q_sample(self, x0, t, noise=None):
         """
