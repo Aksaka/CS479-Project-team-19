@@ -98,7 +98,7 @@ class DiffusionModel(nn.Module):
         # final_image = xt[0, -1, :, :, :][None, :, :, :]
 
         if isinstance(t, int):
-            t = torch.tensor([t]).to(self.device)
+            t = torch.tensor([t]).to(xt.device)
         
         eps_factor = (1 - extract(self.var_scheduler.alphas, t, noise_image)) / (
             1 - extract(self.var_scheduler.alphas_cumprod, t, noise_image)
@@ -144,7 +144,7 @@ class DiffusionModel(nn.Module):
         init_image = images[0, 0, :, :, :][None, None, :, :, :]
         final_image = images[0, -1, :, :, :][None, None, :, :, :]
 
-        x0_pred = torch.zeros([1, num_frame-2, RGB, height, width]).to(self.device)
+        x0_pred = torch.zeros([1, num_frame-2, RGB, height, width]).to(images.device)
 
         x0_pred = torch.cat(
             (
