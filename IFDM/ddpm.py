@@ -89,31 +89,47 @@ class DiffusionModel(nn.Module):
             x_t_prev (`torch.Tensor`): one step denoised sample. (= x_{t-1})
 
         """
+        init_image = xt[0, 0, :, :, :][None, None, :, :, :]
+        noise_image = xt[0, 1:-1, :, :, :][None, :, :, :, :]
+        final_image = xt[0, -1, :, :, :][None, None, :, :, :]
+
+        # init_image = xt[0, 0, :, :, :][None, :, :, :]
+        # noise_image = xt[0, 1:-1, :, :, :][:, :, :, :]
+        # final_image = xt[0, -1, :, :, :][None, :, :, :]
 
         if isinstance(t, int):
             t = torch.tensor([t]).to(self.device)
         
-        eps_factor = (1 - extract(self.var_scheduler.alphas, t, xt)) / (
-            1 - extract(self.var_scheduler.alphas_cumprod, t, xt)
+        eps_factor = (1 - extract(self.var_scheduler.alphas, t, noise_image)) / (
+            1 - extract(self.var_scheduler.alphas_cumprod, t, noise_image)
         ).sqrt()
-        eps_theta = self.network(xt, t)
+        eps_theta = self.network(xt, t)  # [num_frame-2, 3(RGB), height, width]
         
-        sigma = extract(self.var_scheduler.betas, t, xt).sqrt()
+        sigma = extract(self.var_scheduler.betas, t, noise_image).sqrt()
         #print(sigma.device)
-        alpha = extract(self.var_scheduler.alphas, t, xt)
+        alpha = extract(self.var_scheduler.alphas, t, noise_image)
 
         if t == 0:
-            z = torch.zeros_like(xt)
+            z = torch.zeros_like(noise_image)
         else:
-            z = torch.randn_like(xt)
+            z = torch.randn_like(noise_image)
         
 
-        x_t_prev = (xt - eps_factor * eps_theta) / (alpha.sqrt()) + sigma * z
+        # x_t_prev = (xt - eps_factor * eps_theta) / (alpha.sqrt()) + sigma * z
+        noise_image_prev = (noise_image - eps_factor * eps_theta.squeeze(0)) / (alpha.sqrt()) + sigma * z
+
+        x_t_prev = torch.cat(
+            (
+                init_image,
+                noise_image_prev,
+                final_image
+            ), 1
+        )  # [num_frame, 3, height, width]
 
         return x_t_prev
     
     @torch.no_grad()
-    def p_sample_loop(self, shape):
+    def p_sample_loop(self, images):
         """
         The loop of the reverse process of DDPM.
 
@@ -122,7 +138,21 @@ class DiffusionModel(nn.Module):
         Output:
             x0_pred (`torch.Tensor`): The final denoised output through the DDPM reverse process.
         """
-        x0_pred = torch.zeros(shape).to(self.device)
+
+        batch_size, num_frame, RGB, height, width = images.size()
+
+        init_image = images[0, 0, :, :, :][None, None, :, :, :]
+        final_image = images[0, -1, :, :, :][None, None, :, :, :]
+
+        x0_pred = torch.zeros([1, num_frame-2, RGB, height, width]).to(self.device)
+
+        x0_pred = torch.cat(
+            (
+                init_image,
+                x0_pred,
+                final_image
+            ), dim=1
+        )
 
         for t in range(self.var_scheduler.num_train_timesteps - 1, -1, -1):
             x0_pred = self.p_sample(x0_pred, t)

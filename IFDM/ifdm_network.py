@@ -100,7 +100,7 @@ class IFDM(nn.Module):
 
         # images: [batch_size, num_frame, images]
         loss = self.ddpm.compute_loss(images)  # target_image. img: pred_image
-        if(end_flag):
-            middle_image_next_step = self.ddpm.p_sample_loop((batch_size, num_frame, RGB, height, width))
+        if (end_flag):
+            middle_image_next_step = self.ddpm.p_sample_loop(images)
 
         return loss, middle_image_next_step
