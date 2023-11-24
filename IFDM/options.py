@@ -23,7 +23,7 @@ def get_options(args=None):
     parser.add_argument('--no_progress_bar', action='store_true', help='Disable progress bar')
 
     opts = parser.parse_args(args)
-
+    os.mkdir(opts.save_dir)
     opts.use_cuda = torch.cuda.is_available() and not opts.no_cuda
 
     return opts

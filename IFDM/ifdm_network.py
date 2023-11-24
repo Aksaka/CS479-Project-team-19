@@ -36,8 +36,6 @@ class IFDM(nn.Module):
         self.num_diffusion_train_timesteps = num_diffusion_train_timesteps
         # self.diffusion_train_num_steps = 1000000
         self.img_size = (height, width)
-        self.save_dir = Path("results/diffusion/{}".format(time.strftime("%Y%m%dT%H%M%S")))
-        self.save_dir.mkdir(exist_ok=True, parents=True)
 
         self.ddpm_network = UNet(
             T=self.num_diffusion_train_timesteps,

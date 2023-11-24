@@ -1,3 +1,4 @@
+import os
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 import torch.nn as nn
@@ -55,7 +56,7 @@ def train_batch(model, optimizer, dataset, opts, epoch, i, end_flag):
     if (end_flag): # save the last frame when the epoch is end
         batch_size, num_frame, height, width, RGB = output_video_tensor.size()
         save_dir = opts.save_dir + '/output_{}.pt'.format(epoch)
-        save_dir.mkdir(exist_ok=True, parents=True)
+        os.mkdir(save_dir)
 
         torch.save(output_video_tensor, save_dir)
         # save_dir = Path(opts.save_dir)
