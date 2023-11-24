@@ -67,9 +67,7 @@ class IFDM(nn.Module):
         # images: [batch_size, num_frame-2, RGB, height, width]
         # merged_feature: [batch_size, num_frame, embedding_dim]
         # middle_image_next_step: [batch_size, num_frame-2, height, width, RGB]
-        middle_image_next_step = images
-        batch_size, num_frame, RGB, height, width = images.size()
-
+        image_gen = images
         # if step % self.log_interval == 0:
         #     self.ddpm.eval()
         #
