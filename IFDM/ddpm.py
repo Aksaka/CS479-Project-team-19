@@ -89,31 +89,32 @@ class DiffusionModel(nn.Module):
             x_t_prev (`torch.Tensor`): one step denoised sample. (= x_{t-1})
 
         """
-        init_image = xt[0, 0, :, :, :][None, None, :, :, :]
-        noise_image = xt[0, 1:-1, :, :, :][None, :, :, :, :]
-        final_image = xt[0, -1, :, :, :][None, None, :, :, :]
+        batch_size, num_frame, RGB, height, width = xt.size()
+        init_image = xt[:, 0, :, :, :].unsqueeze(1)
+        noise_image = xt[:, 1:-1, :, :, :]
+        final_image = xt[:, -1, :, :, :].unsqueeze(1)
 
         # init_image = xt[0, 0, :, :, :][None, :, :, :]
         # noise_image = xt[0, 1:-1, :, :, :][:, :, :, :]
         # final_image = xt[0, -1, :, :, :][None, :, :, :]
 
         if isinstance(t, int):
-            t = torch.tensor([t]).to(xt.device)
+            t = torch.tensor([t]).to(xt.device).repeat([batch_size])
         
         eps_factor = (1 - extract(self.var_scheduler.alphas, t, noise_image)) / (
             1 - extract(self.var_scheduler.alphas_cumprod, t, noise_image)
         ).sqrt()
         eps_theta = self.network(xt, t)  # [num_frame-2, 3(RGB), height, width]
-        
+        eps_theta = eps_theta.reshape([batch_size, -1, RGB, height, width])
+
         sigma = extract(self.var_scheduler.betas, t, noise_image).sqrt()
         #print(sigma.device)
         alpha = extract(self.var_scheduler.alphas, t, noise_image)
 
-        if t == 0:
+        if t[0].item() == 0:
             z = torch.zeros_like(noise_image)
         else:
             z = torch.randn_like(noise_image)
-        
 
         # x_t_prev = (xt - eps_factor * eps_theta) / (alpha.sqrt()) + sigma * z
         noise_image_prev = (noise_image - eps_factor * eps_theta.squeeze(0)) / (alpha.sqrt()) + sigma * z
@@ -141,10 +142,10 @@ class DiffusionModel(nn.Module):
 
         batch_size, num_frame, RGB, height, width = images.size()
 
-        init_image = images[0, 0, :, :, :][None, None, :, :, :]
-        final_image = images[0, -1, :, :, :][None, None, :, :, :]
+        init_image = images[:, 0, :, :, :].unsqueeze(1)
+        final_image = images[:, -1, :, :, :].unsqueeze(1)
 
-        x0_pred = torch.zeros([1, num_frame-2, RGB, height, width]).to(images.device)
+        x0_pred = torch.zeros([batch_size, num_frame-2, RGB, height, width]).to(images.device)
 
         x0_pred = torch.cat(
             (

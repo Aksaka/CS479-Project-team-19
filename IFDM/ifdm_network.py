@@ -62,21 +62,8 @@ class IFDM(nn.Module):
     def forward(self, input, end_flag):
         # input -> extract_image_feature -> merge_feature -> diffusion
         # input: [batch_size, num_frame(30), RGB(3), height, width]
-        batch_size, num_frame, height, width, _ = input.size()
-
-        init_image = input[:, 0, :, :, :]
-        final_image = input[:, -1, :, :, :]
-
-        loss, middle_image_diffusion = self.IFdiffusion(input, end_flag)  # [batch_size, num_frame, height, width, RGB(3)]
-        new_image = torch.cat(
-            (
-                init_image[:, None, :, :, :],
-                middle_image_diffusion,
-                final_image[:, None, :, :, :]
-            ), dim=1
-        )
-
-        return loss, new_image
+        loss, image_gen = self.IFdiffusion(input, end_flag)  # [batch_size, num_frame, height, width, RGB(3)]
+        return loss, image_gen
     
     def IFdiffusion(self, images, end_flag):
         # images: [batch_size, num_frame-2, RGB, height, width]
@@ -101,6 +88,6 @@ class IFDM(nn.Module):
         # images: [batch_size, num_frame, images]
         loss = self.ddpm.compute_loss(images)  # target_image. img: pred_image
         if (end_flag):
-            middle_image_next_step = self.ddpm.p_sample_loop(images)
+            image_gen = self.ddpm.p_sample_loop(images)
 
-        return loss, middle_image_next_step
+        return loss, image_gen

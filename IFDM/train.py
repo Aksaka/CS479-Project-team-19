@@ -31,6 +31,7 @@ def train_epoch(model, optimizer, epoch, train_dataset, opts):
             optimizer,
             batch,
             opts,
+            epoch,
             i,
             end_flag
         )
@@ -39,7 +40,7 @@ def train_epoch(model, optimizer, epoch, train_dataset, opts):
     # print("Validation cost : {}".format(avg_cost))
 
 
-def train_batch(model, optimizer, dataset, opts, i, end_flag):
+def train_batch(model, optimizer, dataset, opts, epoch, i, end_flag):
     dataset = dataset.to(opts.device)  # [batch_size, num_frame, height, width, 3(RGB)]
     dataset = torch.cat(
         (
@@ -53,18 +54,21 @@ def train_batch(model, optimizer, dataset, opts, i, end_flag):
 
     if (end_flag): # save the last frame when the epoch is end
         batch_size, num_frame, height, width, RGB = output_video_tensor.size()
-        save_dir = Path(opts.save_dir)
-        save_dir.mkdir(exist_ok=True, parents=True)
-        frame_array = []
-        
-        for i in range(num_frame):
-            output_image = tensor_to_pil_image(output_video_tensor[-1, i, :, :, :])
-            frame_array.append(output_image)
-        output = cv2.VideoWriter(opts.save_dir + '/output.mp4', cv2.VideoWriter_fourcc(*'DIVX'), (width, height))
-        
-        for i in range(num_frame):
-            output.write(frame_array[i])
-        output.release()
+        save_dir = opts.save_dir + '/output_{}.pt'.format(epoch)
+
+        torch.save(output_video_tensor, save_dir)
+        # save_dir = Path(opts.save_dir)
+        # save_dir.mkdir(exist_ok=True, parents=True)
+        # frame_array = []
+        #
+        # for i in range(num_frame):
+        #     output_image = tensor_to_pil_image(output_video_tensor[-1, i, :, :, :])
+        #     frame_array.append(output_image)
+        # output = cv2.VideoWriter(opts.save_dir + '/output_{}.mp4'.format(epoch), cv2.VideoWriter_fourcc(*'DIVX'), fps=30, frameSize=(width, height))
+        #
+        # for i in range(num_frame):
+        #     output.write(frame_array[i])
+        # output.release()
         #output_image.save(save_dir / f"last_image.png") 
 
 
