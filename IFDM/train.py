@@ -56,7 +56,6 @@ def train_batch(model, optimizer, dataset, opts, epoch, i, end_flag):
     if (end_flag): # save the last frame when the epoch is end
         batch_size, num_frame, height, width, RGB = output_video_tensor.size()
         save_dir = opts.save_dir + '/output_{}.pt'.format(epoch)
-        os.mkdir(save_dir)
 
         torch.save(output_video_tensor, save_dir)
         # save_dir = Path(opts.save_dir)

@@ -56,7 +56,7 @@ def run(opts):
             model,
             optimizer,
             epoch,
-            train_dataset[0:4],
+            train_dataset,
             opts
         )
 
