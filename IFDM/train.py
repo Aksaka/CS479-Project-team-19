@@ -50,7 +50,7 @@ def train_batch(model, optimizer, dataset, opts, epoch, i, end_flag):
             dataset[:, :, :, :, 2].unsqueeze(2)
         ), dim=2
     )
-    optimizer.zero_grad()
+
     loss, output_video_tensor = model(dataset, end_flag)  # [batch_size, num_frame, height, width, 3(RGB)]
 
     if (end_flag): # save the last frame when the epoch is end
@@ -72,7 +72,7 @@ def train_batch(model, optimizer, dataset, opts, epoch, i, end_flag):
         # output.release()
         #output_image.save(save_dir / f"last_image.png") 
 
-
+    optimizer.zero_grad()
     loss.mean().backward()
     optimizer.step()
 
