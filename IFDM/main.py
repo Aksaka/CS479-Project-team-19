@@ -22,7 +22,7 @@ def run(opts):
     model = IFDM(
         embedding_dim=opts.embedding_dim,
         dataset_type=opts.dataset_type,
-        num_diffusion_train_timesteps=10,
+        num_diffusion_train_timesteps=1000,
         ch=128,
         ch_mult=[1, 2],
         attn=[1],

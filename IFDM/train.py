@@ -49,7 +49,7 @@ def train_batch(model, optimizer, dataset, opts, epoch, i, end_flag):
             dataset[:, :, :, :, 1].unsqueeze(2),
             dataset[:, :, :, :, 2].unsqueeze(2)
         ), dim=2
-    )
+    ).float()
 
     loss, output_video_tensor = model(dataset, end_flag)  # [batch_size, num_frame, height, width, 3(RGB)]
 
