@@ -50,6 +50,8 @@ def train_batch(model, optimizer, dataset, opts, epoch, i, end_flag):
             dataset[:, :, :, :, 2].unsqueeze(2)
         ), dim=2
     ).float()
+    dataset = 2*(dataset/255 - 0.5)
+    # normalize between [-1, +1]
 
     loss, output_video_tensor = model(dataset, end_flag)  # [batch_size, num_frame, height, width, 3(RGB)]
 

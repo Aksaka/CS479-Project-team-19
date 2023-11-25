@@ -182,7 +182,7 @@ class DiffusionModel(nn.Module):
             ), dim=1
         )
         eps_theta = self.network(xt_pred, t)
-        noise = noise[:, 1:-1, :, :, :]
+        noise = noise[:, 1:-1, :, :, :].reshape(-1, RGB, height, width)
 
         loss = F.mse_loss(noise, eps_theta)
         ######################

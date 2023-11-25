@@ -96,7 +96,7 @@ class UNet(nn.Module):
         h = self.tail(h)
 
         assert len(hs) == 0
-        return h.reshape(batch_size, -1, RGB, height, width)
+        return h
     
     def extract_features(self, x):
         # extract the x's features
