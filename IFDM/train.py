@@ -70,7 +70,8 @@ def train_batch(model, optimizer, dataset, opts, epoch, i, end_flag):
         # for i in range(num_frame):
         #     output.write(frame_array[i])
         # output.release()
-        #output_image.save(save_dir / f"last_image.png") 
+        #output_image.save(save_dir / f"last_image.png")
+        print('Loss: {}'.format(loss.mean()))
 
     optimizer.zero_grad()
     loss.mean().backward()
