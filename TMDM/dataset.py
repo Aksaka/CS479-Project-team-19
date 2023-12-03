@@ -1,11 +1,12 @@
-import torch
-import os
-import torchvision.transforms as transforms
-
 from multiprocessing import Pool
+import os
 from itertools import chain
 from pathlib import Path
+
+import torch
+import torchvision.transforms as transforms
 from PIL import Image
+
 
 def listdir(dname):
     fnames = list(
@@ -17,6 +18,7 @@ def listdir(dname):
         )
     )
     return fnames
+
 
 def tensor_to_pil_image(x: torch.Tensor, single_image=False):
     """
@@ -32,6 +34,7 @@ def tensor_to_pil_image(x: torch.Tensor, single_image=False):
     if single_image:
         return images[0]
     return images
+
 
 def get_data_iterator(iterable):
     """Allows training with DataLoaders in a single infinite loop:
@@ -92,7 +95,7 @@ class AFHQDataModule(object):
         batch_size: int = 32,
         num_workers: int = 4,
         max_num_images_per_cat: int = -1,
-        image_resolution: (int, int) = (64, 64),
+        image_resolution: int = 64,
         label_offset=1,
     ):
         self.root = root
@@ -104,8 +107,8 @@ class AFHQDataModule(object):
         self.label_offset = label_offset
 
         if not os.path.exists(self.afhq_root):
-            print(f"{self.afhq_root} is empty.")
-            raise AssertionError('Data folder is empty')
+            print(f"{self.afhq_root} is empty. Downloading AFHQ dataset...")
+            self._download_dataset()
 
         self._set_dataset()
 
@@ -133,6 +136,15 @@ class AFHQDataModule(object):
         )
 
         self.num_classes = self.train_ds.num_classes
+
+    def _download_dataset(self):
+        URL = "https://www.dropbox.com/s/t9l9o3vsx2jai3z/afhq.zip?dl=0"
+        ZIP_FILE = f"./{self.root}/afhq.zip"
+        os.system(f"mkdir -p {self.root}")
+        os.system(f"wget -N {URL} -O {ZIP_FILE}")
+        os.system(f"unzip {ZIP_FILE} -d {self.root}")
+        os.system(f"rm {ZIP_FILE}")
+
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(

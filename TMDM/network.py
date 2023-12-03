@@ -3,16 +3,16 @@ from typing import List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from ddpm_module import DownSample, ResBlock, Swish, TimeEmbedding, UpSample
+from module import DownSample, ResBlock, Swish, TimeEmbedding, UpSample
 from torch.nn import init
 
 
 class UNet(nn.Module):
-    def __init__(self, T, image_resolution, ch, ch_mult, attn, num_res_blocks, dropout):
+    def __init__(self, T=1000, image_resolution=64, ch=128, ch_mult=[1,2,2,2], attn=[1], num_res_blocks=4, dropout=0.1):
         super().__init__()
         self.image_resolution = image_resolution
         assert all([i < len(ch_mult) for i in attn]), 'attn index out of bound'
+        self.ch = ch
         tdim = ch * 4
         # self.time_embedding = TimeEmbedding(T, ch, tdim)
         self.time_embedding = TimeEmbedding(tdim)
@@ -55,10 +55,6 @@ class UNet(nn.Module):
             Swish(),
             nn.Conv2d(now_ch, 3, 3, stride=1, padding=1)
         )
-
-        # # for the extract & merging
-        self.embedding_dim = ch
-        self.height, self.width = image_resolution
         self.initialize()
 
     def initialize(self):
@@ -67,18 +63,24 @@ class UNet(nn.Module):
         init.xavier_uniform_(self.tail[-1].weight, gain=1e-5)
         init.zeros_(self.tail[-1].bias)
 
-    def forward(self, x, timestep, class_label=None):
+    def forward(self, video, timestep, class_label=None):
         # Timestep embedding
-        batch_size, num_frame, RGB, height, width = x.size()
+        batch_size, num_frame, RGB, height, width = video.size()
 
         temb = self.time_embedding(timestep)
-        temb = torch.repeat_interleave(temb, num_frame-2, dim=0)
+        temb = torch.repeat_interleave(temb, num_frame - 2, dim=0)
 
         # extract features from input x
-        x = self.extract_features(x)  # [batch_size, num_frame, self.embedding_dim, height, width]
-        # merging features (neighboring noises average)
-        x = self.merge_features(x)  # [batch_size, num_frame-2, self.embedding_dim, height, width]
-        h = x.reshape(-1, self.embedding_dim, height, width)  # [batch_size*(num_frame-2), self.embedding_dim]
+        # x = self.extract_features(video)  # [batch_size, num_frame, self.ch, height, width]
+        # # merging features (neighboring noises average)
+        # x = self.merge_features(x)  # [batch_size, num_frame-2, self.ch, height, width]
+        # h = x.reshape(-1, self.ch, height, width)  # [batch_size*(num_frame-2), self.ch]
+        init_image = video[:, 0, :, :, :]
+        fin_image = video[:, -1, :, :, :]
+        init_feat = self.head(init_image)
+        fin_feat = self.head(fin_image)
+
+        h = init_feat + fin_feat
 
         # Downsampling
         hs = [h]
@@ -97,7 +99,7 @@ class UNet(nn.Module):
 
         assert len(hs) == 0
         return h
-    
+
     def extract_features(self, x):
         # extract the x's features
         batch_size, num_frame, RGB, height, width = x.size()
@@ -105,13 +107,13 @@ class UNet(nn.Module):
         x = x.reshape(-1, RGB, height, width)
         x = self.head(x)
 
-        return x.reshape([batch_size, num_frame, self.embedding_dim, height, width])
-    
+        return x.reshape([batch_size, num_frame, self.ch, height, width])
+
     def merge_features(self, features):
         # merging neighboring features
-        # features: [batch_size, self.embedding_dim]
-        feature_prev = features[:, 0:-2, :]  # [batch_size, num_frame-2, embedding_dim]
-        feature_next = features[:, 2:, :]  # [batch_size, num_frame-2, embedding_dim]
+        # features: [batch_size, self.ch]
+        feature_prev = features[:, 0:-2, :]  # [batch_size, num_frame-2, ch]
+        feature_next = features[:, 2:, :]  # [batch_size, num_frame-2, ch]
 
         feature_merged = feature_prev + feature_next
 
