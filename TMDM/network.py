@@ -71,16 +71,16 @@ class UNet(nn.Module):
         temb = torch.repeat_interleave(temb, num_frame - 2, dim=0)
 
         # extract features from input x
-        # x = self.extract_features(video)  # [batch_size, num_frame, self.ch, height, width]
+        x = self.extract_features(video)  # [batch_size, num_frame, self.ch, height, width]
         # # merging features (neighboring noises average)
-        # x = self.merge_features(x)  # [batch_size, num_frame-2, self.ch, height, width]
-        # h = x.reshape(-1, self.ch, height, width)  # [batch_size*(num_frame-2), self.ch]
-        init_image = video[:, 0, :, :, :]
-        fin_image = video[:, -1, :, :, :]
-        init_feat = self.head(init_image)
-        fin_feat = self.head(fin_image)
-
-        h = init_feat + fin_feat
+        x = self.merge_features(x)  # [batch_size, num_frame-2, self.ch, height, width]
+        h = x.reshape(-1, self.ch, height, width)  # [batch_size*(num_frame-2), self.ch]
+        # init_image = video[:, 0, :, :, :]
+        # fin_image = video[:, -1, :, :, :]
+        # init_feat = self.head(init_image)
+        # fin_feat = self.head(fin_image)
+        #
+        # # h = init_feat + fin_feat
 
         # Downsampling
         hs = [h]

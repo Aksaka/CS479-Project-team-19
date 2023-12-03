@@ -76,7 +76,7 @@ def main(args):
 
     step = 0
     losses = []
-    dataset = torch.load('CarDataset64/DrivingCarDataset_10_500.pt')
+    dataset = torch.load('CarDataset64/DrivingCarDataset_5_500.pt')
     dataset = torch.cat(
         (
             dataset[:, :, :, :, 0].unsqueeze(2),
@@ -85,7 +85,7 @@ def main(args):
         ), dim=2
     ).float()
     dataset = 2 * (dataset / 255 - 0.5)
-    dataset = dataset[:, 0:3, :, :, :].clone().detach()
+    dataset = dataset.clone().detach()
     # normalize between [-1, +1]
     idx = torch.arange(config.batch_size)
 
@@ -93,7 +93,7 @@ def main(args):
         while step < config.train_num_steps:
             video = dataset[idx].to(device)
 
-            if step % config.log_interval == 0:
+            if step % config.log_interval == 0 and step != 0:
                 ddpm.eval()
                 plt.plot(losses)
                 plt.savefig(f"{save_dir}/loss.png")
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--no_cuda", action='store_true', help='Disable CUDA')
     parser.add_argument("--use_cuda", default=False)
-    parser.add_argument("--batch_size", type=int, default=10)
+    parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument(
         "--train_num_steps",
         type=int,

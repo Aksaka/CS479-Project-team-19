@@ -273,7 +273,7 @@ class DiffusionModule(nn.Module):
             .to(video.device)
             .long()
         )
-        x0 = video[:, 1, :, :, :]
+        x0 = video[:, 1:-1, :, :, :]
         noise = torch.randn_like(x0)
         xt_pred = self.q_sample(x0, t, noise)
         # xt_pred = torch.cat(
